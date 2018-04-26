@@ -53,6 +53,12 @@ func (p Process) ErrorChan() chan error {
 	return p.errorChan
 }
 
+// SetPool set's the pool that this process was spawned by
+func (p *Process) SetPool(pool *Pool) *Process {
+	p.pool = pool
+	return p
+}
+
 // Start will kick off the process
 func (p *Process) Start() error {
 	if p.status != ProcessStopped && p.status != ProcessFinished {

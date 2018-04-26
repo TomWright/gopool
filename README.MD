@@ -6,3 +6,4 @@ Go Pool is a package designed to make it simple and easy to set up and get notif
 
 * [Name Printer](/examples/nameprinter)
 * [Name Printer (Process Reuse)](/examples/nameprinterreuse)
+* [Name Printer (Process Pool)](/examples/nameprinterpool)

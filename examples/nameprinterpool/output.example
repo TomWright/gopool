@@ -1,0 +1,16 @@
+$ go run examples/nameprinterpool/main.go
+name-printer_3 Tom
+name-printer_2 Jim
+name-printer_1 Jess
+name-printer_3 Holly
+name-printer_2 Frank
+name-printer_3 Joe
+name-printer_1 Amelia
+name-printer_3 Tony
+name-printer_2 Elizabeth
+name-printer_1 Francesca
+name-printer_1 Florence
+name-printer_2 Jack
+name-printer_2 Felix
+name-printer_2 Marzia
+name-printer_3 Mark

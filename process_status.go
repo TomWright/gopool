@@ -19,6 +19,23 @@ func (status ProcessStatus) String() string {
 	return "unknown"
 }
 
+func (status ProcessStatus) IsRunning() bool {
+	switch status {
+	case ProcessStopped:
+		return false
+	case ProcessStarting:
+		return true
+	case ProcessRunning:
+		return true
+	case ProcessStopping:
+		return false
+	case ProcessFinished:
+		return false
+	}
+
+	return false
+}
+
 const (
 	ProcessStopped  ProcessStatus = iota
 	ProcessStarting
