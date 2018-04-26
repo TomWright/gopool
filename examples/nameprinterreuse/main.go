@@ -20,7 +20,7 @@ func main() {
 	}
 
 	// create a process to do so
-	p := gopool.NewProcess("name-printer-min-3-chars", func(commands <-chan gopool.ProcessCommand) error {
+	p := gopool.NewProcess("name-printer-min-3-chars", func(process *gopool.Process, commands <-chan gopool.ProcessCommand) error {
 		// inside our func, we want to keep running forever, until either:
 		// - the names channel is closed
 		// - a stop command is passed in
