@@ -9,7 +9,7 @@ import (
 func TestProcess_Start_Stop(t *testing.T) {
 	a := assert.New(t)
 
-	p := NewProcess("process-1", func(commands <-chan ProcessCommand) error {
+	p := NewProcess("process-1", func(process *Process, commands <-chan ProcessCommand) error {
 		for {
 			select {
 			case cmd := <-commands:
@@ -38,7 +38,7 @@ func TestProcess_Start_Stop(t *testing.T) {
 func TestProcess_Start_Finish(t *testing.T) {
 	a := assert.New(t)
 
-	p := NewProcess("process-1", func(commands <-chan ProcessCommand) error {
+	p := NewProcess("process-1", func(process *Process, commands <-chan ProcessCommand) error {
 		time.Sleep(time.Millisecond * 100)
 		return nil
 	})
@@ -59,11 +59,11 @@ func TestProcess_Stop(t *testing.T) {
 
 	output := make(chan string, 100)
 
-	p := NewProcess("process-1", func(commands <-chan ProcessCommand) error {
+	p := NewProcess("process-1", func(process *Process, commands <-chan ProcessCommand) error {
 		for {
 			select {
 			case cmd := <-commands:
-				output <- "stop-process-1"
+				output <- "stop-" + process.ID()
 				if cmd == StopProcessCommand {
 					return nil
 				}
@@ -71,7 +71,7 @@ func TestProcess_Stop(t *testing.T) {
 				break
 			}
 
-			output <- "process-1"
+			output <- process.ID()
 			time.Sleep(time.Millisecond * 25)
 		}
 		return nil

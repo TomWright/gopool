@@ -5,34 +5,8 @@ import (
 	"fmt"
 )
 
-type ProcessStatus uint32
-
-func (status ProcessStatus) String() string {
-	switch status {
-	case ProcessStopped:
-		return "stopped"
-	case ProcessStarting:
-		return "starting"
-	case ProcessRunning:
-		return "running"
-	case ProcessStopping:
-		return "stopping"
-	case ProcessFinished:
-		return "finished"
-	}
-
-	return "unknown"
-}
-
-const (
-	ProcessStopped  ProcessStatus = iota
-	ProcessStarting
-	ProcessRunning
-	ProcessStopping
-	ProcessFinished
-)
-
-func NewProcess(id string, process func(commands <-chan ProcessCommand) error) *Process {
+// NewProcess returns a new Process
+func NewProcess(id string, process func(process *Process, commands <-chan ProcessCommand) error) *Process {
 	p := new(Process)
 	p.id = id
 	p.status = ProcessStopped
@@ -43,24 +17,43 @@ func NewProcess(id string, process func(commands <-chan ProcessCommand) error) *
 	return p
 }
 
+// Process defines a process to run
 type Process struct {
 	id           string
 	pool         *Pool
-	process      func(commands <-chan ProcessCommand) error
+	process      func(process *Process, commands <-chan ProcessCommand) error
 	status       ProcessStatus
 	commandChan  chan ProcessCommand
 	finishedChan chan bool
 	errorChan    chan error
 }
 
+// ID returns the process id
+func (p Process) ID() string {
+	return p.id
+}
+
+// Pool returns the process pool that this process was spawned by
+func (p Process) Pool() *Pool {
+	return p.pool
+}
+
+// Status returns the process's current status
+func (p Process) Status() ProcessStatus {
+	return p.status
+}
+
+// FinishedChan returns a channel that is written to when the process has finished
 func (p Process) FinishedChan() chan bool {
 	return p.finishedChan
 }
 
+// ErrorChan returns a channel through which errors will be returned
 func (p Process) ErrorChan() chan error {
 	return p.errorChan
 }
 
+// Start will kick off the process
 func (p *Process) Start() error {
 	if p.status != ProcessStopped && p.status != ProcessFinished {
 		return errors.New(fmt.Sprintf("process is not stopped: %s", p.status.String()))
@@ -76,7 +69,7 @@ func (p *Process) Start() error {
 func (p *Process) run() {
 	p.status = ProcessRunning
 
-	err := p.process(p.commandChan)
+	err := p.process(p, p.commandChan)
 	if err != nil {
 		p.errorChan <- errors.New(fmt.Sprintf("process `%s` failed: %s", p.id, err))
 		p.status = ProcessStopping
