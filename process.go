@@ -97,7 +97,6 @@ func (p *Process) Stop() error {
 	}
 	if p.status == ProcessFinished || p.status == ProcessStopping {
 		p.finishedChan <- true
-		close(p.commandChan)
 	}
 	if p.status == ProcessStopping {
 		p.status = ProcessStopped
