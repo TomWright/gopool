@@ -14,7 +14,7 @@ func TestProcessStatus_String(t *testing.T) {
 	a.Equal("stopping", ProcessStopping.String())
 	a.Equal("finished", ProcessFinished.String())
 
-	var unknown ProcessStatus
+	var unknown ProcessStatus = 30
 	a.Equal("unknown", unknown.String())
 }
 

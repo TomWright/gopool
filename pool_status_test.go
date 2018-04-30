@@ -14,7 +14,7 @@ func TestPoolStatus_String(t *testing.T) {
 	a.Equal("stopping", PoolStopping.String())
 	a.Equal("finished", PoolFinished.String())
 
-	var unknown PoolStatus
+	var unknown PoolStatus = 30
 	a.Equal("unknown", unknown.String())
 }
 
