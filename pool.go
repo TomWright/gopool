@@ -19,6 +19,7 @@ func NewPool(id string, process func(process *Process, commands <-chan ProcessCo
 	p.status = PoolStopped
 	p.processManagerTicker = newTicker(time.Second * 30)
 	p.desiredProcessCount = func(pool *Pool) uint64 { return 1 }
+	p.errChan = make(chan error, 100)
 	return p
 }
 
@@ -32,6 +33,7 @@ type Pool struct {
 	status                     PoolStatus
 	processManagerTicker       *ticker
 	ensureProcessCountDuration time.Duration
+	errChan                    chan error
 
 	mu sync.Mutex
 }
@@ -39,6 +41,11 @@ type Pool struct {
 // ID returns the pool's id
 func (p Pool) ID() string {
 	return p.id
+}
+
+// ErrorChan returns an error channel so as you can receive errors from the processes
+func (p Pool) ErrorChan() <-chan error {
+	return p.errChan
 }
 
 // Start ensures there are the correct amount of processes and sets the pool status
@@ -151,6 +158,20 @@ func (p *Pool) spawnProcess() (*Process, error) {
 		if err != nil {
 			return process, err
 		}
+
+		// listen for errors from the process error chan
+		// and post them to the pool error chan
+		go func(process *Process) {
+			for {
+				select {
+				case err, open := <-process.ErrorChan():
+					if ! open {
+						return
+					}
+					p.errChan <- err
+				}
+			}
+		}(process)
 	}
 	return process, nil
 }
