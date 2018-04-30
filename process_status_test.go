@@ -13,6 +13,9 @@ func TestProcessStatus_String(t *testing.T) {
 	a.Equal("running", ProcessRunning.String())
 	a.Equal("stopping", ProcessStopping.String())
 	a.Equal("finished", ProcessFinished.String())
+
+	var unknown ProcessStatus
+	a.Equal("unknown", unknown.String())
 }
 
 func TestProcessStatus_IsRunning(t *testing.T) {
@@ -23,4 +26,7 @@ func TestProcessStatus_IsRunning(t *testing.T) {
 	a.True(ProcessRunning.IsRunning())
 	a.False(ProcessStopping.IsRunning())
 	a.False(ProcessFinished.IsRunning())
+
+	var unknown ProcessStatus
+	a.False(unknown.IsRunning())
 }

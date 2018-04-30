@@ -13,6 +13,9 @@ func TestPoolStatus_String(t *testing.T) {
 	a.Equal("running", PoolRunning.String())
 	a.Equal("stopping", PoolStopping.String())
 	a.Equal("finished", PoolFinished.String())
+
+	var unknown PoolStatus
+	a.Equal("unknown", unknown.String())
 }
 
 func TestPoolStatus_IsRunning(t *testing.T) {
@@ -23,4 +26,7 @@ func TestPoolStatus_IsRunning(t *testing.T) {
 	a.True(PoolRunning.IsRunning())
 	a.False(PoolStopping.IsRunning())
 	a.False(PoolFinished.IsRunning())
+
+	var unknown PoolStatus
+	a.False(unknown.IsRunning())
 }
