@@ -129,6 +129,8 @@ func TestPool_Start(t *testing.T) {
 
 	err = p.Start()
 	a.Error(err, "pool is not stopped: running")
+
+	p.Stop()
 }
 
 func TestPool_ErrorChan(t *testing.T) {
