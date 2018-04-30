@@ -248,3 +248,40 @@ func TestPool_ErrorChan_MultipleProcesses(t *testing.T) {
 
 	p.Stop()
 }
+
+func TestProcess_Pool(t *testing.T) {
+	a := assert.New(t)
+
+	names := make(chan string, 10)
+
+	p := NewPool("name-printer", func(process *Process, commands <-chan ProcessCommand) error {
+		for {
+			select {
+			case cmd := <-commands: // take a command from the commands channel
+				if cmd == StopProcessCommand {
+					return nil
+				}
+			case name, open := <-names: // take a name from the names channel
+				if ! open {
+					return nil
+				}
+				fmt.Println(process.ID(), name)
+			}
+		}
+		return nil
+	})
+	p.SetDesiredProcessCount(func(pool *Pool) uint64 { return 5 })
+	a.Equal(0, p.ProcessCount())
+
+	// start the pool
+	err := p.Start()
+	a.NoError(err)
+	time.Sleep(time.Millisecond * 600)
+	a.Equal(5, p.ProcessCount())
+
+	for _, process := range p.Processes() {
+		a.Equal(p, process.Pool())
+	}
+
+	p.Stop()
+}
