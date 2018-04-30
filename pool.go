@@ -17,7 +17,7 @@ func NewPool(id string, process func(process *Process, commands <-chan ProcessCo
 	p.process = process
 	p.processCounter = 0
 	p.status = PoolStopped
-	p.processManagerTicker = time.NewTicker(time.Second * 30)
+	p.processManagerTicker = newTicker(time.Second * 30)
 	p.desiredProcessCount = func(pool *Pool) uint64 { return 1 }
 	return p
 }
@@ -28,11 +28,9 @@ type Pool struct {
 	processes                  []*Process
 	process                    func(process *Process, commands <-chan ProcessCommand) error
 	processCounter             uint64
-	minProcesses               uint64
-	maxProcesses               uint64
 	desiredProcessCount        func(pool *Pool) uint64
 	status                     PoolStatus
-	processManagerTicker       *time.Ticker
+	processManagerTicker       *ticker
 	ensureProcessCountDuration time.Duration
 
 	mu sync.Mutex
@@ -94,22 +92,12 @@ func (p Pool) ProcessCount() int {
 	return len(p.processes)
 }
 
-// SetProcessLimits sets the minimum and maximum process counts
-func (p *Pool) SetProcessLimits(min uint64, max uint64) *Pool {
+// SetProcessManagerPollRate defines how often the process manager should check the process count
+func (p *Pool) SetProcessManagerPollRate(duration time.Duration) *Pool {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	p.minProcesses = min
-	p.maxProcesses = max
-	return p
-}
-
-// SetProcessManagerTicker defines how often the process manager should check the process count
-func (p *Pool) SetProcessManagerTicker(ticker *time.Ticker) *Pool {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	p.processManagerTicker = ticker
+	p.processManagerTicker = newTicker(duration)
 	return p
 }
 
@@ -128,6 +116,7 @@ func (p *Pool) getNextProcessID() string {
 }
 
 func (p *Pool) startProcessManager() {
+	p.processManagerTicker.Start()
 	go func() {
 		p.mu.Lock()
 		p.ensureProcessCount()
@@ -136,7 +125,7 @@ func (p *Pool) startProcessManager() {
 	go func() {
 		for {
 			select {
-			case _, open := <-p.processManagerTicker.C:
+			case _, open := <-p.processManagerTicker.T.C:
 				if ! open {
 					return
 				}
@@ -205,11 +194,8 @@ func (p *Pool) ensureProcessCount() {
 	}
 
 	desiredProcessCount := p.desiredProcessCount(p)
-	if desiredProcessCount < p.minProcesses && p.minProcesses >= 0 {
-		desiredProcessCount = p.minProcesses
-	}
-	if desiredProcessCount > p.maxProcesses && p.maxProcesses > 0 {
-		desiredProcessCount = p.maxProcesses
+	if desiredProcessCount < 0 {
+		desiredProcessCount = 0
 	}
 
 	diff := float64(len(p.processes)) - float64(desiredProcessCount)
