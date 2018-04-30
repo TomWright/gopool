@@ -27,6 +27,6 @@ func TestProcessStatus_IsRunning(t *testing.T) {
 	a.False(ProcessStopping.IsRunning())
 	a.False(ProcessFinished.IsRunning())
 
-	var unknown ProcessStatus
+	var unknown ProcessStatus = 30
 	a.False(unknown.IsRunning())
 }

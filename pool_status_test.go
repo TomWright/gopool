@@ -27,6 +27,6 @@ func TestPoolStatus_IsRunning(t *testing.T) {
 	a.False(PoolStopping.IsRunning())
 	a.False(PoolFinished.IsRunning())
 
-	var unknown PoolStatus
+	var unknown PoolStatus = 30
 	a.False(unknown.IsRunning())
 }
