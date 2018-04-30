@@ -29,6 +29,9 @@ func TestProcess_Start_Stop(t *testing.T) {
 	time.Sleep(time.Millisecond * 1) // sleep for just enough time for the go routine to start up
 	a.Equal(ProcessRunning, p.status)
 
+	err := p.Start()
+	a.EqualError(err, "process is not stopped: running")
+
 	p.Stop()
 	a.Equal(ProcessStopping, p.status)
 	time.Sleep(time.Millisecond * 50)
