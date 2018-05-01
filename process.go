@@ -3,6 +3,7 @@ package gopool
 import (
 	"errors"
 	"fmt"
+	"sync"
 )
 
 // NewProcess returns a new Process
@@ -26,41 +27,64 @@ type Process struct {
 	commandChan  chan ProcessCommand
 	finishedChan chan bool
 	errorChan    chan error
+
+	mu sync.Mutex
 }
 
 // ID returns the process id
 func (p Process) ID() string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	return p.id
 }
 
 // Pool returns the process pool that this process was spawned by
 func (p Process) Pool() *Pool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	return p.pool
 }
 
 // Status returns the process's current status
 func (p Process) Status() ProcessStatus {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	return p.status
 }
 
 // FinishedChan returns a channel that is written to when the process has finished
 func (p Process) FinishedChan() chan bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	return p.finishedChan
 }
 
 // ErrorChan returns a channel through which errors will be returned
 func (p Process) ErrorChan() chan error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	return p.errorChan
 }
 
 // SetPool set's the pool that this process was spawned by
 func (p *Process) SetPool(pool *Pool) *Process {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	p.pool = pool
 	return p
 }
 
 // Start will kick off the process
 func (p *Process) Start() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if p.status != ProcessStopped && p.status != ProcessFinished {
 		return errors.New(fmt.Sprintf("process is not stopped: %s", p.status.String()))
 	}
@@ -89,6 +113,9 @@ func (p *Process) run() {
 
 // Stop will halt the running process by passing a StopProcessingCommand in via the commands channel.
 func (p *Process) Stop() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if p.status == ProcessStarting || p.status == ProcessRunning {
 		p.commandChan <- StopProcessCommand
 		p.status = ProcessStopping
