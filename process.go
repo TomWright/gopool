@@ -108,14 +108,19 @@ func (p *Process) run() {
 	if p.status == ProcessRunning {
 		p.status = ProcessFinished
 	}
-	p.Stop()
+	p.stop()
 }
 
 // Stop will halt the running process by passing a StopProcessingCommand in via the commands channel.
 func (p *Process) Stop() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	return p.stop()
+	return nil
+}
 
+// Stop will halt the running process by passing a StopProcessingCommand in via the commands channel.
+func (p *Process) stop() error {
 	if p.status == ProcessStarting || p.status == ProcessRunning {
 		p.commandChan <- StopProcessCommand
 		p.status = ProcessStopping
