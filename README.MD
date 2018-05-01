@@ -5,6 +5,12 @@
 
 Go Pool is a package designed to make it simple and easy to set up and get notified about single processes, as well as group those processes into pools.
 
+## Installation
+
+```
+go get -u github.com/tomwright/gopool
+```
+
 ## Examples
 
 * [Name Printer](/examples/nameprinter)
