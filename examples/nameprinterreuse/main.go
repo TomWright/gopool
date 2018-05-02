@@ -44,6 +44,9 @@ func main() {
 		return nil
 	})
 
+	finChan := p.FinishedChan()
+	errChan := p.ErrorChan()
+
 	// start the process
 	p.Start()
 
@@ -57,8 +60,8 @@ func main() {
 
 	// wait for the process to finish or error
 	select {
-	case <-p.FinishedChan():
-	case err := <-p.ErrorChan():
+	case <-finChan:
+	case err := <-errChan:
 		fmt.Println("Received error: " + err.Error())
 	}
 
@@ -75,8 +78,8 @@ func main() {
 
 	// wait for the process to finish or error
 	select {
-	case <-p.FinishedChan():
-	case err := <-p.ErrorChan():
+	case <-finChan:
+	case err := <-errChan:
 		fmt.Println("Received error: " + err.Error())
 	}
 

@@ -45,6 +45,7 @@ func TestProcess_Start_Finish(t *testing.T) {
 		time.Sleep(time.Millisecond * 100)
 		return nil
 	})
+	finChan := p.FinishedChan()
 
 	a.Equal(ProcessStopped, p.status)
 
@@ -53,7 +54,7 @@ func TestProcess_Start_Finish(t *testing.T) {
 	time.Sleep(time.Millisecond * 1) // sleep for just enough time for the go routine to start up
 	a.Equal(ProcessRunning, p.status)
 
-	<-p.FinishedChan()
+	<-finChan
 	a.Equal(ProcessFinished, p.status)
 }
 

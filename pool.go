@@ -162,9 +162,10 @@ func (p *Pool) spawnProcess() (*Process, error) {
 		// listen for errors from the process error chan
 		// and post them to the pool error chan
 		go func(process *Process) {
+			errChan := process.ErrorChan()
 			for {
 				select {
-				case err, open := <-process.ErrorChan():
+				case err, open := <-errChan:
 					if ! open {
 						return
 					}

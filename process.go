@@ -83,32 +83,55 @@ func (p *Process) SetPool(pool *Pool) *Process {
 // Start will kick off the process
 func (p *Process) Start() error {
 	p.mu.Lock()
-	defer p.mu.Unlock()
 
 	if p.status != ProcessStopped && p.status != ProcessFinished {
+		p.mu.Unlock()
 		return errors.New(fmt.Sprintf("process is not stopped: %s", p.status.String()))
 	}
 
 	p.status = ProcessStarting
+	p.mu.Unlock()
 
-	go p.run()
+	p.run()
 
 	return nil
 }
 
 func (p *Process) run() {
+	p.mu.Lock()
 	p.status = ProcessRunning
 
-	err := p.process(p, p.commandChan)
-	if err != nil {
-		p.errorChan <- errors.New(fmt.Sprintf("process `%s` failed: %s", p.id, err))
-		p.status = ProcessStopping
-	}
+	errChan := p.errorChan
+	cmdChan := p.commandChan
 
-	if p.status == ProcessRunning {
-		p.status = ProcessFinished
-	}
-	p.stop()
+	p.mu.Unlock()
+
+	processFeedbackChan := make(chan interface{})
+
+	go func(p *Process) {
+		err := p.process(p, cmdChan)
+		processFeedbackChan <- err
+	}(p)
+
+	go func() {
+		select {
+		case feedback := <-processFeedbackChan:
+			p.mu.Lock()
+			p.status = ProcessStopping
+			p.mu.Unlock()
+			if err, isErr := feedback.(error); isErr {
+				errChan <- errors.New(fmt.Sprintf("process `%s` failed: %s", p.id, err))
+			}
+		}
+		p.mu.Lock()
+		if p.status == ProcessRunning {
+			p.status = ProcessFinished
+		}
+		p.stop()
+		p.mu.Unlock()
+	}()
+
+	return
 }
 
 // Stop will halt the running process by passing a StopProcessingCommand in via the commands channel.
@@ -116,7 +139,6 @@ func (p *Process) Stop() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.stop()
-	return nil
 }
 
 // Stop will halt the running process by passing a StopProcessingCommand in via the commands channel.

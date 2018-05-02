@@ -34,6 +34,8 @@ func main() {
 		return nil
 	})
 
+	finChan := p.FinishedChan()
+
 	// start the process
 	p.Start()
 
@@ -46,7 +48,7 @@ func main() {
 	close(names)
 
 	// wait for the process to finish
-	<-p.FinishedChan()
+	<-finChan
 
 	os.Exit(0)
 }
