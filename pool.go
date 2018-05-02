@@ -1,7 +1,6 @@
 package gopool
 
 import (
-	"sync/atomic"
 	"fmt"
 	"math"
 	"time"
@@ -40,6 +39,8 @@ type Pool struct {
 
 // ID returns the pool's id
 func (p Pool) ID() string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	return p.id
 }
 
@@ -118,8 +119,9 @@ func (p *Pool) SetDesiredProcessCount(desiredProcessCount func(pool *Pool) uint6
 }
 
 func (p *Pool) getNextProcessID() string {
-	counter := atomic.AddUint64(&p.processCounter, 1)
-	return fmt.Sprintf("%s_%d", p.ID(), counter)
+	p.processCounter++
+	counter := p.processCounter
+	return fmt.Sprintf("%s_%d", p.id, counter)
 }
 
 func (p *Pool) startProcessManager() {
@@ -130,16 +132,14 @@ func (p *Pool) startProcessManager() {
 		p.mu.Unlock()
 	}()
 	go func() {
+		p.mu.Lock()
+		tickerChan := p.processManagerTicker.T.C
+		p.mu.Unlock()
 		for {
-			select {
-			case _, open := <-p.processManagerTicker.T.C:
-				if ! open {
-					return
-				}
-				p.mu.Lock()
-				p.ensureProcessCount()
-				p.mu.Unlock()
-			}
+			<-tickerChan
+			p.mu.Lock()
+			p.ensureProcessCount()
+			p.mu.Unlock()
 		}
 	}()
 }
