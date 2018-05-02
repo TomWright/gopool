@@ -12,9 +12,6 @@ import (
 func TestPool_SetDesiredProcessCount(t *testing.T) {
 	a := assert.New(t)
 
-	// we have a list of names and we want to print them to the screen
-	names := make(chan string, 10)
-
 	// create a process to do so
 	p := NewPool("name-printer", func(process *Process, commands <-chan ProcessCommand) error {
 		// inside our func, we want to keep running forever, until either:
@@ -26,11 +23,6 @@ func TestPool_SetDesiredProcessCount(t *testing.T) {
 				if cmd == StopProcessCommand {
 					return nil
 				}
-			case name, open := <-names: // take a name from the names channel
-				if ! open {
-					return nil
-				}
-				fmt.Println(process.ID(), name)
 			}
 		}
 		return nil

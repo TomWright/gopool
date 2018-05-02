@@ -22,20 +22,18 @@ func TestProcess_Start_Stop(t *testing.T) {
 		return nil
 	})
 
-	a.Equal(ProcessStopped, p.status)
+	a.Equal(ProcessStopped, p.Status())
 
 	p.Start()
-	a.Equal(ProcessStarting, p.status)
-	time.Sleep(time.Millisecond * 1) // sleep for just enough time for the go routine to start up
-	a.Equal(ProcessRunning, p.status)
+	time.Sleep(time.Millisecond * 10) // sleep for just enough time for the go routine to start up
+	a.Equal(ProcessRunning, p.Status())
 
 	err := p.Start()
 	a.EqualError(err, "process is not stopped: running")
 
 	p.Stop()
-	a.Equal(ProcessStopping, p.status)
 	time.Sleep(time.Millisecond * 50)
-	a.Equal(ProcessStopped, p.status)
+	a.Equal(ProcessStopped, p.Status())
 }
 
 func TestProcess_Start_Finish(t *testing.T) {
@@ -50,11 +48,11 @@ func TestProcess_Start_Finish(t *testing.T) {
 	a.Equal(ProcessStopped, p.status)
 
 	p.Start()
-	a.Equal(ProcessStarting, p.status)
-	time.Sleep(time.Millisecond * 1) // sleep for just enough time for the go routine to start up
+	time.Sleep(time.Millisecond * 10) // sleep for just enough time for the go routine to start up
 	a.Equal(ProcessRunning, p.status)
 
 	<-finChan
+	time.Sleep(time.Millisecond * 100)
 	a.Equal(ProcessFinished, p.status)
 }
 

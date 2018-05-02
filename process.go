@@ -114,15 +114,14 @@ func (p *Process) run() {
 	}(p)
 
 	go func() {
-		select {
-		case feedback := <-processFeedbackChan:
+		feedback := <-processFeedbackChan
+		if err, isErr := feedback.(error); isErr {
 			p.mu.Lock()
 			p.status = ProcessStopping
 			p.mu.Unlock()
-			if err, isErr := feedback.(error); isErr {
-				errChan <- errors.New(fmt.Sprintf("process `%s` failed: %s", p.id, err))
-			}
+			errChan <- errors.New(fmt.Sprintf("process `%s` failed: %s", p.id, err))
 		}
+
 		p.mu.Lock()
 		if p.status == ProcessRunning {
 			p.status = ProcessFinished
