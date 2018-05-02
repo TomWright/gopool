@@ -153,6 +153,8 @@ func (p *Pool) spawnProcess() (*Process, error) {
 	process := NewProcess(p.getNextProcessID(), p.process)
 	process.SetPool(p)
 	p.processes = append(p.processes, process)
+	errChan := process.ErrorChan()
+
 	if p.status.IsRunning() {
 		err := process.Start()
 		if err != nil {
@@ -162,7 +164,6 @@ func (p *Pool) spawnProcess() (*Process, error) {
 		// listen for errors from the process error chan
 		// and post them to the pool error chan
 		go func(process *Process) {
-			errChan := process.ErrorChan()
 			for {
 				select {
 				case err, open := <-errChan:
