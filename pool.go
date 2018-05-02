@@ -129,15 +129,13 @@ func (p *Pool) getNextProcessID() string {
 
 func (p *Pool) startProcessManager() {
 	p.processManagerTicker.Start()
+	tickerChan := p.processManagerTicker.T.C
 	go func() {
 		(*p.mu).Lock()
 		p.ensureProcessCount()
 		(*p.mu).Unlock()
 	}()
 	go func() {
-		(*p.mu).Lock()
-		tickerChan := p.processManagerTicker.T.C
-		(*p.mu).Unlock()
 		for {
 			<-tickerChan
 			(*p.mu).Lock()
