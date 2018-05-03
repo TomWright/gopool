@@ -42,7 +42,7 @@ type Pool struct {
 func (p *Pool) ID() string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	return p.id
 }
 
@@ -220,9 +220,6 @@ func (p *Pool) ensureProcessCount() {
 	}
 
 	desiredProcessCount := p.desiredProcessCount(p)
-	if desiredProcessCount < 0 {
-		desiredProcessCount = 0
-	}
 
 	diff := float64(len(p.processes)) - float64(desiredProcessCount)
 
