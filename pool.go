@@ -39,14 +39,18 @@ type Pool struct {
 }
 
 // ID returns the pool's id
-func (p Pool) ID() string {
+func (p *Pool) ID() string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	
 	return p.id
 }
 
 // ErrorChan returns an error channel so as you can receive errors from the processes
-func (p Pool) ErrorChan() <-chan error {
+func (p *Pool) ErrorChan() <-chan error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	return p.errChan
 }
 

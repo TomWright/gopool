@@ -27,6 +27,9 @@ func TestPool_SetDesiredProcessCount(t *testing.T) {
 		}
 		return nil
 	})
+
+	a.Equal("name-printer", p.ID())
+
 	p.SetProcessManagerPollRate(time.Millisecond * 400)
 	a.Equal(0, p.ProcessCount())
 
