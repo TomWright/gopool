@@ -12,8 +12,6 @@ import (
 func NewPool(id string, process func(process *Process, commands <-chan ProcessCommand) error) *Pool {
 	p := new(Pool)
 
-	p.mu = new(sync.Mutex)
-
 	p.id = id
 	p.processes = make([]*Process, 0)
 	p.process = process
@@ -37,13 +35,13 @@ type Pool struct {
 	ensureProcessCountDuration time.Duration
 	errChan                    chan error
 
-	mu *sync.Mutex
+	mu sync.Mutex
 }
 
 // ID returns the pool's id
 func (p Pool) ID() string {
-	(*p.mu).Lock()
-	defer (*p.mu).Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	return p.id
 }
 
@@ -54,8 +52,8 @@ func (p Pool) ErrorChan() <-chan error {
 
 // Start ensures there are the correct amount of processes and sets the pool status
 func (p *Pool) Start() error {
-	(*p.mu).Lock()
-	defer (*p.mu).Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	if p.status != PoolStopped && p.status != PoolFinished {
 		return errors.New(fmt.Sprintf("pool is not stopped: %s", p.status.String()))
@@ -69,8 +67,8 @@ func (p *Pool) Start() error {
 
 // Start ensures there are the correct amount of processes and sets the pool status
 func (p *Pool) Stop() error {
-	(*p.mu).Lock()
-	defer (*p.mu).Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	p.status = PoolStopping
 	p.stopProcessManager()
@@ -81,32 +79,32 @@ func (p *Pool) Stop() error {
 
 // Status returns the processes status
 func (p *Pool) Status() PoolStatus {
-	(*p.mu).Lock()
-	defer (*p.mu).Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	return p.status
 }
 
 // Processes returns all of the processes belonging to this pool
-func (p Pool) Processes() []*Process {
-	(*p.mu).Lock()
-	defer (*p.mu).Unlock()
+func (p *Pool) Processes() []*Process {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	return p.processes
 }
 
 // ProcessCount returns the current number of processes belonging to this pool
-func (p Pool) ProcessCount() int {
-	(*p.mu).Lock()
-	defer (*p.mu).Unlock()
+func (p *Pool) ProcessCount() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	return len(p.processes)
 }
 
 // SetProcessManagerPollRate defines how often the process manager should check the process count
 func (p *Pool) SetProcessManagerPollRate(duration time.Duration) *Pool {
-	(*p.mu).Lock()
-	defer (*p.mu).Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	p.processManagerTicker = newTicker(duration)
 	return p
@@ -114,8 +112,8 @@ func (p *Pool) SetProcessManagerPollRate(duration time.Duration) *Pool {
 
 // SetDesiredProcessCount defines the way the the pool chooses how many processes should be running
 func (p *Pool) SetDesiredProcessCount(desiredProcessCount func(pool *Pool) uint64) *Pool {
-	(*p.mu).Lock()
-	defer (*p.mu).Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	p.desiredProcessCount = desiredProcessCount
 	return p
@@ -131,16 +129,16 @@ func (p *Pool) startProcessManager() {
 	p.processManagerTicker.Start()
 	tickerChan := p.processManagerTicker.T.C
 	go func() {
-		(*p.mu).Lock()
+		p.mu.Lock()
 		p.ensureProcessCount()
-		(*p.mu).Unlock()
+		p.mu.Unlock()
 	}()
 	go func() {
 		for {
 			<-tickerChan
-			(*p.mu).Lock()
+			p.mu.Lock()
 			p.ensureProcessCount()
-			(*p.mu).Unlock()
+			p.mu.Unlock()
 		}
 	}()
 }

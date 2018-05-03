@@ -45,15 +45,15 @@ func TestProcess_Start_Finish(t *testing.T) {
 	})
 	finChan := p.FinishedChan()
 
-	a.Equal(ProcessStopped, p.status)
+	a.Equal(ProcessStopped, p.Status())
 
 	p.Start()
 	time.Sleep(time.Millisecond * 10) // sleep for just enough time for the go routine to start up
-	a.Equal(ProcessRunning, p.status)
+	a.Equal(ProcessRunning, p.Status())
 
 	<-finChan
 	time.Sleep(time.Millisecond * 100)
-	a.Equal(ProcessFinished, p.status)
+	a.Equal(ProcessFinished, p.Status())
 }
 
 func TestProcess_Stop(t *testing.T) {
@@ -67,6 +67,7 @@ func TestProcess_Stop(t *testing.T) {
 			case cmd := <-commands:
 				output <- "stop-" + process.ID()
 				if cmd == StopProcessCommand {
+					close(output)
 					return nil
 				}
 			default:
@@ -84,8 +85,6 @@ func TestProcess_Stop(t *testing.T) {
 	time.Sleep(time.Millisecond * 100)
 	p.Stop()
 	time.Sleep(time.Millisecond * 100)
-
-	close(output)
 
 	outputArr := make([]string, 100)
 	indexToUse := 0
