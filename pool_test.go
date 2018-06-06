@@ -1,284 +1,145 @@
-package gopool
+package gopool_test
 
 import (
 	"testing"
-	"fmt"
+	"github.com/tomwright/gopool"
+	"context"
 	"time"
 	"github.com/stretchr/testify/assert"
-	"errors"
 )
 
-// Test that the desired process count is acknowledged
-func TestPool_SetDesiredProcessCount(t *testing.T) {
+func TestPool_StartStop(t *testing.T) {
 	a := assert.New(t)
 
-	// create a process to do so
-	p := NewPool("name-printer", func(process *Process, commands <-chan ProcessCommand) error {
-		// inside our func, we want to keep running forever, until either:
-		// - the names channel is closed
-		// - a stop command is passed in
+	startedWorkers := safeCounter{}
+	finishedWorkers := safeCounter{}
+
+	var work gopool.WorkFunc = func(ctx context.Context) error {
+		startedWorkers.Inc()
 		for {
 			select {
-			case cmd := <-commands: // take a command from the commands channel
-				if cmd == StopProcessCommand {
-					return nil
-				}
+			case <-ctx.Done():
+				finishedWorkers.Inc()
+				return ctx.Err()
 			}
 		}
-		return nil
-	})
-
-	a.Equal("name-printer", p.ID())
-
-	p.SetProcessManagerPollRate(time.Millisecond * 400)
-	a.Equal(0, p.ProcessCount())
-
-	// start the pool
-	err := p.Start()
-	a.NoError(err)
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(1, p.ProcessCount())
-
-	p.SetDesiredProcessCount(func(pool *Pool) uint64 { return 2 })
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(2, p.ProcessCount())
-
-	p.SetDesiredProcessCount(func(pool *Pool) uint64 { return 4 })
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(4, p.ProcessCount())
-
-	p.SetDesiredProcessCount(func(pool *Pool) uint64 { return 3 })
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(3, p.ProcessCount())
-
-	p.SetDesiredProcessCount(func(pool *Pool) uint64 { return 1 })
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(1, p.ProcessCount())
-
-	err = p.Stop()
-	a.NoError(err)
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(0, p.ProcessCount())
-
-	// test with process limits
-	p.SetDesiredProcessCount(func(pool *Pool) uint64 { return 6 })
-	err = p.Start()
-	a.NoError(err)
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(6, p.ProcessCount())
-
-	p.SetDesiredProcessCount(func(pool *Pool) uint64 { return 1 })
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(1, p.ProcessCount())
-
-	p.SetDesiredProcessCount(func(pool *Pool) uint64 { return 4 })
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(4, p.ProcessCount())
-
-	p.Stop()
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(0, p.ProcessCount())
-}
-
-func TestPool_Start(t *testing.T) {
-	a := assert.New(t)
-
-	// we have a list of names and we want to print them to the screen
-	names := make(chan string, 10)
-
-	// create a process to do so
-	p := NewPool("name-printer", func(process *Process, commands <-chan ProcessCommand) error {
-		// inside our func, we want to keep running forever, until either:
-		// - the names channel is closed
-		// - a stop command is passed in
-		for {
-			select {
-			case cmd := <-commands: // take a command from the commands channel
-				if cmd == StopProcessCommand {
-					return nil
-				}
-			case name, open := <-names: // take a name from the names channel
-				if ! open {
-					return nil
-				}
-				fmt.Println(process.ID(), name)
-			}
-		}
-		return nil
-	})
-	a.Equal(0, p.ProcessCount())
-
-	// start the pool
-	err := p.Start()
-	a.NoError(err)
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(1, p.ProcessCount())
-
-	// ensure status is correct
-	a.Equal("running", p.Status().String())
-
-	// ensure all processes are running too
-	for _, process := range p.Processes() {
-		a.True(process.Status().IsRunning())
 	}
 
-	err = p.Start()
-	a.Error(err, "pool is not stopped: running")
-
-	p.Stop()
-}
-
-func TestPool_ErrorChan(t *testing.T) {
-	a := assert.New(t)
-
-	names := make(chan string, 10)
-
-	p := NewPool("name-printer", func(process *Process, commands <-chan ProcessCommand) error {
-		for {
-			select {
-			case cmd := <-commands: // take a command from the commands channel
-				if cmd == StopProcessCommand {
-					return nil
-				}
-			case name, open := <-names: // take a name from the names channel
-				if ! open {
-					return nil
-				}
-				if name == "" {
-					return errors.New("name cannot be empty")
-				}
-				fmt.Println(process.ID(), name)
-			}
-		}
-		return nil
-	})
-	a.Equal(0, p.ProcessCount())
-
-	// start the pool
-	err := p.Start()
-	a.NoError(err)
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(1, p.ProcessCount())
-
-	timeout := time.NewTimer(time.Second * 10)
-
-	names <- "Name 1"
-	names <- "Name 2"
-	names <- "Name 3"
-	names <- ""
-
-	select {
-	case <-timeout.C:
-		a.Fail("error chan timeout reached. error was expected")
-	case err := <-p.ErrorChan():
-		a.EqualError(err, "process `name-printer_1` failed: name cannot be empty")
+	var workerCount gopool.WorkerCountFunc = func() uint64 {
+		return 3
 	}
 
-	p.Stop()
-}
-
-func TestPool_ErrorChan_MultipleProcesses(t *testing.T) {
-	a := assert.New(t)
-
-	names := make(chan string, 10)
-
-	p := NewPool("name-printer", func(process *Process, commands <-chan ProcessCommand) error {
-		for {
-			select {
-			case cmd := <-commands: // take a command from the commands channel
-				if cmd == StopProcessCommand {
-					return nil
-				}
-			case name, open := <-names: // take a name from the names channel
-				if ! open {
-					return nil
-				}
-				if name == "" {
-					return errors.New("name cannot be empty")
-				}
-				fmt.Println(process.ID(), name)
-			}
-		}
-		return nil
-	})
-	p.SetDesiredProcessCount(func(pool *Pool) uint64 { return 5 })
-	a.Equal(0, p.ProcessCount())
-
-	// start the pool
-	err := p.Start()
-	a.NoError(err)
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(5, p.ProcessCount())
-
-	timeout := time.NewTimer(time.Second * 10)
-
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- ""
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-	names <- "Test"
-
-	select {
-	case <-timeout.C:
-		a.Fail("error chan timeout reached. error was expected")
-	case err := <-p.ErrorChan():
-		a.Error(err)
+	var sleepTime gopool.SleepTimeFunc = func() time.Duration {
+		return time.Millisecond * 500
 	}
 
-	p.Stop()
+	p := gopool.NewPool("test", work, workerCount, sleepTime, context.Background())
+	a.Equal(0, startedWorkers.Val())
+	a.Equal(0, finishedWorkers.Val())
+
+	cancel := p.Start()
+	time.Sleep(time.Millisecond * 1000)
+	a.Equal(3, startedWorkers.Val())
+	a.Equal(0, finishedWorkers.Val())
+
+	cancel()
+	time.Sleep(time.Millisecond * 1000)
+	a.Equal(3, startedWorkers.Val())
+	a.Equal(3, finishedWorkers.Val())
 }
 
-func TestProcess_Pool(t *testing.T) {
+func TestPool_DesiredWorkerCount_Increment(t *testing.T) {
 	a := assert.New(t)
 
-	names := make(chan string, 10)
+	wc := safeCounter{}
+	wc.Set(3)
+	pWc := &wc
+	startedWorkers := safeCounter{}
+	finishedWorkers := safeCounter{}
 
-	p := NewPool("name-printer", func(process *Process, commands <-chan ProcessCommand) error {
+	var work gopool.WorkFunc = func(ctx context.Context) error {
+		startedWorkers.Inc()
 		for {
 			select {
-			case cmd := <-commands: // take a command from the commands channel
-				if cmd == StopProcessCommand {
-					return nil
-				}
-			case name, open := <-names: // take a name from the names channel
-				if ! open {
-					return nil
-				}
-				fmt.Println(process.ID(), name)
+			case <-ctx.Done():
+				finishedWorkers.Inc()
+				return ctx.Err()
 			}
 		}
-		return nil
-	})
-	p.SetDesiredProcessCount(func(pool *Pool) uint64 { return 5 })
-	a.Equal(0, p.ProcessCount())
-
-	// start the pool
-	err := p.Start()
-	a.NoError(err)
-	time.Sleep(time.Millisecond * 600)
-	a.Equal(5, p.ProcessCount())
-
-	for _, process := range p.Processes() {
-		a.Equal(p, process.Pool())
 	}
 
-	p.Stop()
+	var workerCount gopool.WorkerCountFunc = func() uint64 {
+		return uint64(pWc.Val())
+	}
+
+	var sleepTime gopool.SleepTimeFunc = func() time.Duration {
+		return time.Millisecond * 500
+	}
+
+	p := gopool.NewPool("test", work, workerCount, sleepTime, context.Background())
+	a.Equal(0, startedWorkers.Val())
+	a.Equal(0, finishedWorkers.Val())
+
+	cancel := p.Start()
+	time.Sleep(time.Millisecond * 1000)
+	a.Equal(3, startedWorkers.Val())
+	a.Equal(0, finishedWorkers.Val())
+
+	wc.Set(5)
+	time.Sleep(time.Millisecond * 1000)
+	a.Equal(5, startedWorkers.Val())
+	a.Equal(0, finishedWorkers.Val())
+
+	cancel()
+	time.Sleep(time.Millisecond * 1000)
+	a.Equal(5, startedWorkers.Val())
+	a.Equal(5, finishedWorkers.Val())
+}
+
+func TestPool_DesiredWorkerCount_Decrement(t *testing.T) {
+	a := assert.New(t)
+
+	wc := safeCounter{}
+	wc.Set(3)
+	pWc := &wc
+	startedWorkers := safeCounter{}
+	finishedWorkers := safeCounter{}
+
+	var work gopool.WorkFunc = func(ctx context.Context) error {
+		startedWorkers.Inc()
+		for {
+			select {
+			case <-ctx.Done():
+				finishedWorkers.Inc()
+				return ctx.Err()
+			}
+		}
+	}
+
+	var workerCount gopool.WorkerCountFunc = func() uint64 {
+		return uint64(pWc.Val())
+	}
+
+	var sleepTime gopool.SleepTimeFunc = func() time.Duration {
+		return time.Millisecond * 500
+	}
+
+	p := gopool.NewPool("test", work, workerCount, sleepTime, context.Background())
+	a.Equal(0, startedWorkers.Val())
+	a.Equal(0, finishedWorkers.Val())
+
+	cancel := p.Start()
+	time.Sleep(time.Millisecond * 1000)
+	a.Equal(3, startedWorkers.Val())
+	a.Equal(0, finishedWorkers.Val())
+
+	wc.Set(1)
+	time.Sleep(time.Millisecond * 1000)
+	a.Equal(3, startedWorkers.Val())
+	a.Equal(2, finishedWorkers.Val())
+
+	cancel()
+	time.Sleep(time.Millisecond * 1000)
+	a.Equal(3, startedWorkers.Val())
+	a.Equal(3, finishedWorkers.Val())
 }

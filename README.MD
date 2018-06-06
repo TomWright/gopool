@@ -14,9 +14,7 @@ go get -u github.com/tomwright/gopool
 
 ## Examples
 
-* [Name Printer using a worker pool](/examples/nameprinterpool)
-
-### Edge case examples
-
-* [Name Printer](/examples/nameprinter)
-* [Name Printer (Process Reuse)](/examples/nameprinterreuse)
+* [Worker](/example/worker/example.md)
+* [Cancelling a Worker](/example/cancelled/example.md)
+* [Pool](/example/pool/example.md)
+* [Cancelling a Pool](/example/stopped/example.md)
