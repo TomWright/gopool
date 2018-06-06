@@ -8,6 +8,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestPool_ID(t *testing.T) {
+	a := assert.New(t)
+
+	var work WorkFunc
+	var workerCount WorkerCountFunc
+	var sleepTime SleepTimeFunc
+
+	p := NewPool("some-id", work, workerCount, sleepTime, context.Background())
+
+	a.Equal("some-id", p.ID())
+}
+
 func TestPool_StartStop(t *testing.T) {
 	a := assert.New(t)
 
