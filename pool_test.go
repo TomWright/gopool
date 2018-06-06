@@ -2,7 +2,7 @@ package gopool_test
 
 import (
 	"testing"
-	"github.com/tomwright/gopool"
+	. "github.com/tomwright/gopool"
 	"context"
 	"time"
 	"github.com/stretchr/testify/assert"
@@ -14,7 +14,7 @@ func TestPool_StartStop(t *testing.T) {
 	startedWorkers := safeCounter{}
 	finishedWorkers := safeCounter{}
 
-	var work gopool.WorkFunc = func(ctx context.Context) error {
+	var work WorkFunc = func(ctx context.Context) error {
 		startedWorkers.Inc()
 		for {
 			select {
@@ -25,15 +25,15 @@ func TestPool_StartStop(t *testing.T) {
 		}
 	}
 
-	var workerCount gopool.WorkerCountFunc = func() uint64 {
+	var workerCount WorkerCountFunc = func() uint64 {
 		return 3
 	}
 
-	var sleepTime gopool.SleepTimeFunc = func() time.Duration {
+	var sleepTime SleepTimeFunc = func() time.Duration {
 		return time.Millisecond * 500
 	}
 
-	p := gopool.NewPool("test", work, workerCount, sleepTime, context.Background())
+	p := NewPool("test", work, workerCount, sleepTime, context.Background())
 	a.Equal(0, startedWorkers.Val())
 	a.Equal(0, finishedWorkers.Val())
 
@@ -57,7 +57,7 @@ func TestPool_DesiredWorkerCount_Increment(t *testing.T) {
 	startedWorkers := safeCounter{}
 	finishedWorkers := safeCounter{}
 
-	var work gopool.WorkFunc = func(ctx context.Context) error {
+	var work WorkFunc = func(ctx context.Context) error {
 		startedWorkers.Inc()
 		for {
 			select {
@@ -68,15 +68,15 @@ func TestPool_DesiredWorkerCount_Increment(t *testing.T) {
 		}
 	}
 
-	var workerCount gopool.WorkerCountFunc = func() uint64 {
+	var workerCount WorkerCountFunc = func() uint64 {
 		return uint64(pWc.Val())
 	}
 
-	var sleepTime gopool.SleepTimeFunc = func() time.Duration {
+	var sleepTime SleepTimeFunc = func() time.Duration {
 		return time.Millisecond * 500
 	}
 
-	p := gopool.NewPool("test", work, workerCount, sleepTime, context.Background())
+	p := NewPool("test", work, workerCount, sleepTime, context.Background())
 	a.Equal(0, startedWorkers.Val())
 	a.Equal(0, finishedWorkers.Val())
 
@@ -105,7 +105,7 @@ func TestPool_DesiredWorkerCount_Decrement(t *testing.T) {
 	startedWorkers := safeCounter{}
 	finishedWorkers := safeCounter{}
 
-	var work gopool.WorkFunc = func(ctx context.Context) error {
+	var work WorkFunc = func(ctx context.Context) error {
 		startedWorkers.Inc()
 		for {
 			select {
@@ -116,15 +116,15 @@ func TestPool_DesiredWorkerCount_Decrement(t *testing.T) {
 		}
 	}
 
-	var workerCount gopool.WorkerCountFunc = func() uint64 {
+	var workerCount WorkerCountFunc = func() uint64 {
 		return uint64(pWc.Val())
 	}
 
-	var sleepTime gopool.SleepTimeFunc = func() time.Duration {
+	var sleepTime SleepTimeFunc = func() time.Duration {
 		return time.Millisecond * 500
 	}
 
-	p := gopool.NewPool("test", work, workerCount, sleepTime, context.Background())
+	p := NewPool("test", work, workerCount, sleepTime, context.Background())
 	a.Equal(0, startedWorkers.Val())
 	a.Equal(0, finishedWorkers.Val())
 

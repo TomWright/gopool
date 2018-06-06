@@ -5,20 +5,20 @@ import (
 	"github.com/stretchr/testify/assert"
 	"context"
 	"time"
-	"github.com/tomwright/gopool"
+	. "github.com/tomwright/gopool"
 	"sync"
 	"errors"
 )
 
 func TestWorker_ID(t *testing.T) {
 	a := assert.New(t)
-	w := gopool.NewWorker("id1", nil, context.Background())
+	w := NewWorker("id1", nil, context.Background())
 	a.Equal("id1", w.ID())
 }
 
 func TestWorker_Context(t *testing.T) {
 	a := assert.New(t)
-	w := gopool.NewWorker("id1", nil, context.Background())
+	w := NewWorker("id1", nil, context.Background())
 	a.Equal("id1", w.Context().Value("workerId"))
 }
 
@@ -29,7 +29,7 @@ func TestWorker_Start(t *testing.T) {
 	out := make([]int, 0)
 	inputChan := make(chan int, 5)
 	outputChan := make(chan int, 5)
-	var work gopool.WorkFunc = func(ctx context.Context) error {
+	var work WorkFunc = func(ctx context.Context) error {
 		for {
 			select {
 			case <-ctx.Done():
@@ -61,7 +61,7 @@ func TestWorker_Start(t *testing.T) {
 
 	ctx := context.Background()
 
-	w := gopool.NewWorker("id", work, ctx)
+	w := NewWorker("id", work, ctx)
 
 	cancel := w.Start()
 
@@ -108,7 +108,7 @@ var ErrTextExample = errors.New("example error")
 func TestWorker_Err(t *testing.T) {
 	a := assert.New(t)
 
-	var work gopool.WorkFunc = func(ctx context.Context) error {
+	var work WorkFunc = func(ctx context.Context) error {
 		for {
 			select {
 			case <-ctx.Done():
@@ -123,7 +123,7 @@ func TestWorker_Err(t *testing.T) {
 	ctx := context.Background()
 	ctx, _ = context.WithTimeout(ctx, time.Second)
 
-	w := gopool.NewWorker("id", work, ctx)
+	w := NewWorker("id", work, ctx)
 	w.Start()
 
 	<-ctx.Done()
