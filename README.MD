@@ -10,7 +10,7 @@ Not only can they be started and stopped, but they can also be dynamically sized
 Think of a message queue that gets batches of messages posted at unknown times.
 Rather than just having 1 worker, or a static pool of workers you can dynamically size the worker pool based off of the current lag in the message queue.
 
-This allows you to get through the messages as quickly as possible by spawning up multiple workers, and then once the lag had died down you can kill all but one of the workers.
+This allows you to get through the messages as quickly as possible by spawning up multiple workers, and then once the lag has died down you can kill all but one of the workers.
 
 ## Installation
 
