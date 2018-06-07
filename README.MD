@@ -4,7 +4,10 @@
 [![codecov](https://codecov.io/gh/TomWright/gopool/branch/master/graph/badge.svg)](https://codecov.io/gh/TomWright/gopool)
 [![Documentation](https://godoc.org/github.com/TomWright/gopool?status.svg)](https://godoc.org/github.com/TomWright/gopool)
 
-Go Pool is a package designed to make it simple and easy to set up and get notified about single workers, as well as group those workers into pools and modify the worker count on the fly.
+Go Pool makes it easy to set up and manage pools of background workers.
+Not only can they be started and stopped, but they can also be dynamically sized ensuring you have the optimal amount of workers running for your situation.
+
+Think of a message queue that gets batches of messages posted at unknown times. You can dynamically size the worker pool based off of the current lag in the message queue to get through the messages as quickly as possible, and then once the lag had died down you can kill all but one of the workers.
 
 ## Installation
 
@@ -14,7 +17,7 @@ go get -u github.com/tomwright/gopool
 
 ## Examples
 
-* [Worker](/example/worker/example.md)
-* [Cancelling a Worker](/example/cancelled/example.md)
 * [Pool](/example/pool/example.md)
 * [Cancelling a Pool](/example/stopped/example.md)
+* [Worker](/example/worker/example.md)
+* [Cancelling a Worker](/example/cancelled/example.md)
