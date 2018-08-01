@@ -9,6 +9,8 @@ import (
 )
 
 func TestPool_ID(t *testing.T) {
+	t.Parallel()
+
 	a := assert.New(t)
 
 	var work WorkFunc
@@ -21,6 +23,8 @@ func TestPool_ID(t *testing.T) {
 }
 
 func TestPool_StartStop(t *testing.T) {
+	t.Parallel()
+
 	a := assert.New(t)
 
 	startedWorkers := safeCounter{}
@@ -61,6 +65,8 @@ func TestPool_StartStop(t *testing.T) {
 }
 
 func TestPool_DesiredWorkerCount_Increment(t *testing.T) {
+	t.Parallel()
+
 	a := assert.New(t)
 
 	wc := safeCounter{}
@@ -109,6 +115,8 @@ func TestPool_DesiredWorkerCount_Increment(t *testing.T) {
 }
 
 func TestPool_DesiredWorkerCount_Decrement(t *testing.T) {
+	t.Parallel()
+
 	a := assert.New(t)
 
 	wc := safeCounter{}

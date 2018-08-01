@@ -11,18 +11,24 @@ import (
 )
 
 func TestWorker_ID(t *testing.T) {
+	t.Parallel()
+
 	a := assert.New(t)
 	w := NewWorker("id1", nil, context.Background())
 	a.Equal("id1", w.ID())
 }
 
 func TestWorker_Context(t *testing.T) {
+	t.Parallel()
+
 	a := assert.New(t)
 	w := NewWorker("id1", nil, context.Background())
 	a.Equal("id1", w.Context().Value("workerId"))
 }
 
 func TestWorker_Start(t *testing.T) {
+	t.Parallel()
+
 	a := assert.New(t)
 
 	outMu := sync.Mutex{}
@@ -106,6 +112,8 @@ func TestWorker_Start(t *testing.T) {
 var ErrTextExample = errors.New("example error")
 
 func TestWorker_Err(t *testing.T) {
+	t.Parallel()
+
 	a := assert.New(t)
 
 	var work WorkFunc = func(ctx context.Context) error {
