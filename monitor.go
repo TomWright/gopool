@@ -10,9 +10,10 @@ import (
 type SleepTimeFunc func() time.Duration
 
 func monitorPool(pool *Pool) {
+	ctx := pool.Context()
 	for {
 		select {
-		case <-pool.Context().Done():
+		case <-ctx.Done():
 			return
 		default:
 			pool.mu.Lock()
@@ -24,9 +25,8 @@ func monitorPool(pool *Pool) {
 				addWorkersToPool(pool, uint64(diff))
 			}
 
-			sleepTime := pool.sleepTime()
-
 			pool.mu.Unlock()
+			sleepTime := pool.sleepTime()
 
 			time.Sleep(sleepTime)
 		}
@@ -51,6 +51,9 @@ func addWorkersToPool(pool *Pool, add uint64) {
 
 func removeWorkersFromPool(pool *Pool, remove uint64) {
 	for x := uint64(0); x < remove; x++ {
+		if x >= uint64(len(pool.workers)) {
+			return
+		}
 		pool.workers[x].cancel()
 	}
 }
@@ -59,11 +62,17 @@ func removeWorkerFromPoolOnceDone(pool *Pool, worker poolWorker) {
 	<-worker.worker.Done()
 
 	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	newWorkers := make([]poolWorker, 0)
+
 	subjectWorkerId := worker.worker.ID()
-	for k, w := range pool.workers {
-		if subjectWorkerId == w.worker.ID() {
-			pool.workers = append(pool.workers[:k], pool.workers[k+1:]...)
+
+	for _, w := range pool.workers {
+		if subjectWorkerId != w.worker.ID() {
+			newWorkers = append(newWorkers, w)
 		}
 	}
-	pool.mu.Unlock()
+
+	pool.workers = newWorkers
 }

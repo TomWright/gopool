@@ -58,8 +58,9 @@ func (p *Pool) Start() context.CancelFunc {
 	defer p.mu.Unlock()
 
 	p.ctx, p.cancel = context.WithCancel(p.ctx)
+	cancel := p.cancel
 
 	go monitorPool(p)
 
-	return p.cancel
+	return cancel
 }

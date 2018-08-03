@@ -51,15 +51,25 @@ func (w *Worker) Context() context.Context {
 
 // Start initiates a go routine for the worker and returns the cancel context
 func (w *Worker) Start() context.CancelFunc {
+	workerDoneChan := make(chan struct{})
+
 	w.mu.Lock()
-	w.done = make(chan struct{})
+	w.done = workerDoneChan
 	w.mu.Unlock()
+
 	ctx, cancel := context.WithCancel(w.Context())
 	go func() {
 		w.mu.Lock()
-		w.err = w.work(ctx)
-		close(w.done)
+		workerWork := w.work
 		w.mu.Unlock()
+
+		err := workerWork(ctx)
+
+		w.mu.Lock()
+		w.err = err
+		w.mu.Unlock()
+
+		close(workerDoneChan)
 	}()
 	return cancel
 }

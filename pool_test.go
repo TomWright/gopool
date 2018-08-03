@@ -6,6 +6,7 @@ import (
 	"context"
 	"time"
 	"github.com/stretchr/testify/assert"
+	"fmt"
 )
 
 func TestPool_ID(t *testing.T) {
@@ -24,8 +25,6 @@ func TestPool_ID(t *testing.T) {
 
 func TestPool_StartStop(t *testing.T) {
 	t.Parallel()
-
-	a := assert.New(t)
 
 	startedWorkers := safeCounter{}
 	finishedWorkers := safeCounter{}
@@ -46,29 +45,42 @@ func TestPool_StartStop(t *testing.T) {
 	}
 
 	var sleepTime SleepTimeFunc = func() time.Duration {
-		return time.Millisecond * 500
+		return time.Millisecond * 100
+	}
+
+	safeCounterHasVal := func(started *safeCounter, startedVal int, finished *safeCounter, finishedVal int) func() error {
+		return func() error {
+			got := started.Val()
+			if got != startedVal {
+				return fmt.Errorf("expected %d workers to be started, got %d", startedVal, got)
+			}
+			got = finished.Val()
+			if got != finishedVal {
+				return fmt.Errorf("expected %d workers to be finished, got %d", finishedVal, got)
+			}
+			return nil
+		}
 	}
 
 	p := NewPool("test", work, workerCount, sleepTime, context.Background())
-	a.Equal(0, startedWorkers.Val())
-	a.Equal(0, finishedWorkers.Val())
+	if err := timeoutAfter(time.Second, safeCounterHasVal(&startedWorkers, 0, &finishedWorkers, 0)); err != nil {
+		t.Fatal(err)
+	}
 
 	cancel := p.Start()
-	time.Sleep(time.Millisecond * 1000)
-	a.Equal(3, startedWorkers.Val())
-	a.Equal(0, finishedWorkers.Val())
+	if err := timeoutAfter(time.Second, safeCounterHasVal(&startedWorkers, 3, &finishedWorkers, 0)); err != nil {
+		t.Fatal(err)
+	}
 
 	cancel()
-	time.Sleep(time.Millisecond * 1000)
-	a.Equal(3, startedWorkers.Val())
-	a.Equal(3, finishedWorkers.Val())
+	if err := timeoutAfter(time.Second, safeCounterHasVal(&startedWorkers, 3, &finishedWorkers, 3)); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestPool_DesiredWorkerCount_Increment(t *testing.T) {
 	t.Parallel()
 
-	a := assert.New(t)
-
 	wc := safeCounter{}
 	wc.Set(3)
 	pWc := &wc
@@ -86,44 +98,67 @@ func TestPool_DesiredWorkerCount_Increment(t *testing.T) {
 		}
 	}
 
+	safeCounterHasVal := func(started *safeCounter, startedVal int, finished *safeCounter, finishedVal int) func() error {
+		return func() error {
+			got := started.Val()
+			if got != startedVal {
+				return fmt.Errorf("expected %d workers to be started, got %d", startedVal, got)
+			}
+			got = finished.Val()
+			if got != finishedVal {
+				return fmt.Errorf("expected %d workers to be finished, got %d", finishedVal, got)
+			}
+			return nil
+		}
+	}
+
 	var workerCount WorkerCountFunc = func() uint64 {
 		return uint64(pWc.Val())
 	}
 
 	var sleepTime SleepTimeFunc = func() time.Duration {
-		return time.Millisecond * 500
+		return time.Millisecond * 100
 	}
 
 	p := NewPool("test", work, workerCount, sleepTime, context.Background())
-	a.Equal(0, startedWorkers.Val())
-	a.Equal(0, finishedWorkers.Val())
+	if err := timeoutAfter(time.Second, safeCounterHasVal(&startedWorkers, 0, &finishedWorkers, 0)); err != nil {
+		t.Fatal(err)
+	}
 
 	cancel := p.Start()
-	time.Sleep(time.Millisecond * 1000)
-	a.Equal(3, startedWorkers.Val())
-	a.Equal(0, finishedWorkers.Val())
+	if err := timeoutAfter(time.Second, safeCounterHasVal(&startedWorkers, 3, &finishedWorkers, 0)); err != nil {
+		t.Fatal(err)
+	}
+
+	wc.Set(3)
+	if err := timeoutAfter(time.Second, safeCounterHasVal(&startedWorkers, 3, &finishedWorkers, 0)); err != nil {
+		t.Fatal(err)
+	}
 
 	wc.Set(5)
-	time.Sleep(time.Millisecond * 1000)
-	a.Equal(5, startedWorkers.Val())
-	a.Equal(0, finishedWorkers.Val())
+	if err := timeoutAfter(time.Second, safeCounterHasVal(&startedWorkers, 5, &finishedWorkers, 0)); err != nil {
+		t.Fatal(err)
+	}
+
+	wc.Set(6)
+	if err := timeoutAfter(time.Second, safeCounterHasVal(&startedWorkers, 6, &finishedWorkers, 0)); err != nil {
+		t.Fatal(err)
+	}
 
 	cancel()
-	time.Sleep(time.Millisecond * 1000)
-	a.Equal(5, startedWorkers.Val())
-	a.Equal(5, finishedWorkers.Val())
+	if err := timeoutAfter(time.Second, safeCounterHasVal(&startedWorkers, 6, &finishedWorkers, 6)); err != nil {
+		t.Fatal(err)
+	}
 }
 
-func TestPool_DesiredWorkerCount_Decrement(t *testing.T) {
+func TestPool_DesiredWorkerCount_Increment_Decrement(t *testing.T) {
 	t.Parallel()
-
-	a := assert.New(t)
 
 	wc := safeCounter{}
 	wc.Set(3)
 	pWc := &wc
-	startedWorkers := safeCounter{}
-	finishedWorkers := safeCounter{}
+	startedWorkers := &safeCounter{}
+	finishedWorkers := &safeCounter{}
 
 	var work WorkFunc = func(ctx context.Context) error {
 		startedWorkers.Inc()
@@ -141,25 +176,55 @@ func TestPool_DesiredWorkerCount_Decrement(t *testing.T) {
 	}
 
 	var sleepTime SleepTimeFunc = func() time.Duration {
-		return time.Millisecond * 500
+		return time.Millisecond * 100
+	}
+
+	safeCounterHasVal := func(started *safeCounter, startedVal int, finished *safeCounter, finishedVal int) func() error {
+		return func() error {
+			got := started.Val()
+			if got != startedVal {
+				return fmt.Errorf("expected %d workers to be started, got %d", startedVal, got)
+			}
+			got = finished.Val()
+			if got != finishedVal {
+				return fmt.Errorf("expected %d workers to be finished, got %d", finishedVal, got)
+			}
+			return nil
+		}
 	}
 
 	p := NewPool("test", work, workerCount, sleepTime, context.Background())
-	a.Equal(0, startedWorkers.Val())
-	a.Equal(0, finishedWorkers.Val())
+	if err := timeoutAfter(time.Second, safeCounterHasVal(startedWorkers, 0, finishedWorkers, 0)); err != nil {
+		t.Fatal(err)
+	}
 
 	cancel := p.Start()
-	time.Sleep(time.Millisecond * 1000)
-	a.Equal(3, startedWorkers.Val())
-	a.Equal(0, finishedWorkers.Val())
+	if err := timeoutAfter(time.Second, safeCounterHasVal(startedWorkers, 3, finishedWorkers, 0)); err != nil {
+		t.Fatal(err)
+	}
+
+	wc.Set(2)
+	if err := timeoutAfter(time.Second, safeCounterHasVal(startedWorkers, 3, finishedWorkers, 1)); err != nil {
+		t.Fatal(err)
+	}
+
+	wc.Set(5)
+	if err := timeoutAfter(3*time.Second, safeCounterHasVal(startedWorkers, 6, finishedWorkers, 1)); err != nil {
+		t.Fatal(err)
+	}
 
 	wc.Set(1)
-	time.Sleep(time.Millisecond * 1000)
-	a.Equal(3, startedWorkers.Val())
-	a.Equal(2, finishedWorkers.Val())
+	if err := timeoutAfter(3*time.Second, safeCounterHasVal(startedWorkers, 6, finishedWorkers, 5)); err != nil {
+		t.Fatal(err)
+	}
+
+	wc.Set(0)
+	if err := timeoutAfter(3*time.Second, safeCounterHasVal(startedWorkers, 6, finishedWorkers, 6)); err != nil {
+		t.Fatal(err)
+	}
 
 	cancel()
-	time.Sleep(time.Millisecond * 1000)
-	a.Equal(3, startedWorkers.Val())
-	a.Equal(3, finishedWorkers.Val())
+	if err := timeoutAfter(time.Second, safeCounterHasVal(startedWorkers, 6, finishedWorkers, 6)); err != nil {
+		t.Fatal(err)
+	}
 }
