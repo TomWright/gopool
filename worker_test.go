@@ -43,10 +43,10 @@ func ExampleWorker() {
 	fmt.Print("Start")
 
 	cancel := w.Start()
+	defer cancel()
 
 	timer := time.NewTimer(time.Second)
 	defer timer.Stop()
-	defer cancel()
 
 	select {
 	case <-timer.C:
@@ -133,6 +133,7 @@ func TestWorker_Start_Cancel(t *testing.T) {
 	w := NewWorker("id", work, ctx)
 
 	cancel := w.Start()
+	defer cancel()
 
 	if err := timeoutAfter(time.Second, test([]int{})); err != nil {
 		t.Fatal(err)
@@ -231,7 +232,8 @@ func TestWorker_Start_Finish(t *testing.T) {
 
 	w := NewWorker("id", work, ctx)
 
-	w.Start()
+	cancel := w.Start()
+	defer cancel()
 
 	if err := timeoutAfter(time.Second, test([]int{})); err != nil {
 		t.Fatal(err)
@@ -290,7 +292,8 @@ func TestWorker_Err(t *testing.T) {
 	ctx, _ = context.WithTimeout(ctx, time.Second)
 
 	w := NewWorker("id", work, ctx)
-	w.Start()
+	cancel := w.Start()
+	defer cancel()
 
 	<-ctx.Done()
 	a.EqualError(w.Err(), "example error")
