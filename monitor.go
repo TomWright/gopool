@@ -54,9 +54,6 @@ func addWorkersToPool(pool *Pool, add uint64) {
 
 func removeWorkersFromPool(pool *Pool, remove uint64) {
 	for x := uint64(0); x < remove; x++ {
-		if x >= uint64(len(pool.workers)) {
-			return
-		}
 		pool.workers[x].cancel()
 	}
 }
