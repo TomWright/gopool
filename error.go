@@ -3,6 +3,10 @@ package gopool
 type Error string
 
 func (e Error) Error() string {
+	return e.String()
+}
+
+func (e Error) String() string {
 	return string(e)
 }
 

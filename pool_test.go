@@ -544,9 +544,41 @@ func TestPool_Start_ErrPoolAlreadyRunning(t *testing.T) {
 	defer cancel()
 
 	secondCancel, err := p.Start()
-	assert.Error(t, err)
+	assert.EqualError(t, err, ErrPoolAlreadyRunning.String())
 	assert.Nil(t, secondCancel)
 
+	thirdCancel, err := p.StartOnce()
+	assert.EqualError(t, err, ErrPoolAlreadyRunning.String())
+	assert.Nil(t, thirdCancel)
+
+	cancel()
+}
+
+func TestPool_Start_ErrPoolHasNilSleepTimeFunc(t *testing.T) {
+	t.Parallel()
+
+	var work WorkFunc = func(ctx context.Context) error {
+		for {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	}
+
+	var workerCount WorkerCountFunc = func() uint64 {
+		return 1
+	}
+
+	p := NewPool("test", work, workerCount, nil, context.Background())
+
+	cancel, err := p.Start()
+	assert.EqualError(t, err, ErrPoolHasNilSleepTimeFunc.String())
+	assert.Nil(t, cancel)
+
+	cancel, err = p.StartOnce()
+	assert.NoError(t, err)
+	assert.NotNil(t, cancel)
 	cancel()
 }
 
