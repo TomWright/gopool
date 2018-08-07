@@ -16,20 +16,23 @@ func monitorPool(pool *Pool) {
 		case <-ctx.Done():
 			return
 		default:
-			pool.mu.Lock()
-
-			diff := int(pool.desiredWorkerCount()) - len(pool.workers)
-			if diff < 0 {
-				removeWorkersFromPool(pool, uint64(-diff))
-			} else if diff > 0 {
-				addWorkersToPool(pool, uint64(diff))
-			}
-
-			pool.mu.Unlock()
+			assertPoolSize(pool)
 			sleepTime := pool.sleepTime()
 
 			time.Sleep(sleepTime)
 		}
+	}
+}
+
+func assertPoolSize(pool *Pool) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	diff := int(pool.desiredWorkerCount()) - len(pool.workers)
+	if diff < 0 {
+		removeWorkersFromPool(pool, uint64(-diff))
+	} else if diff > 0 {
+		addWorkersToPool(pool, uint64(diff))
 	}
 }
 
